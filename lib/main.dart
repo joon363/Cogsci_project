@@ -2,102 +2,115 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const WebtoonViewerApp());
+  runApp(const WebtoonViewer());
 }
 
-class WebtoonViewerApp extends StatelessWidget {
-  const WebtoonViewerApp({super.key});
+class WebtoonViewer extends StatelessWidget {
+  const WebtoonViewer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      home: ViewerPage(),
       debugShowCheckedModeBanner: false,
-      home: WebtoonViewer(),
     );
   }
 }
 
+enum PlayerState { idle, playing, finished }
+enum SpeedMode { slow, fast }
 enum WebtoonType { barbarian, dday }
 
-class WebtoonViewer extends StatefulWidget {
-  const WebtoonViewer({super.key});
-
+class ViewerPage extends StatefulWidget {
   @override
-  State<WebtoonViewer> createState() => _WebtoonViewerState();
+  State<ViewerPage> createState() => _ViewerPageState();
 }
 
-class _WebtoonViewerState extends State<WebtoonViewer>
-    with TickerProviderStateMixin {
-  WebtoonType currentType = WebtoonType.barbarian;
-
-  int index = 1;
-  double interval = 1500;
-
-  Timer? timer;
-
-  int get maxIndex =>
-      currentType == WebtoonType.barbarian ? 8 : 6;
+class _ViewerPageState extends State<ViewerPage> {
+  PlayerState playerState = PlayerState.idle;
+  SpeedMode speed = SpeedMode.slow;
+  WebtoonType webtoon = WebtoonType.barbarian;
 
   List<String> barbarianImages =
   List.generate(8, (i) => "assets/images/바바리안영애${i + 1}.png");
   List<String> ddayImages =
   List.generate(7, (i) => "assets/images/각자의디데이${i + 1}.png");
 
-  String get currentImagePath {
-    if (currentType == WebtoonType.barbarian) {
-      return barbarianImages[index - 1];
-    } else {
-      return ddayImages[index - 1];
-    }
-  }
+  int currentIndex = -1;
+  Timer? playbackTimer;
+
+  int get delayMs => speed == SpeedMode.slow ? 3000 : 1500;
+
+  List<String> get currentImageList =>
+      webtoon == WebtoonType.barbarian ? barbarianImages : ddayImages;
 
   @override
-  void initState() {
-    super.initState();
-    precacheAllImages();
+  void dispose() {
+    playbackTimer?.cancel();
+    super.dispose();
+  }
+
+  void startPlayback() {
+    setState(() {
+      playerState = PlayerState.playing;
+      currentIndex = 0;
+    });
+
     startTimer();
   }
 
-  void precacheAllImages() {
-    Future.microtask(() {
-      for (final path in barbarianImages) {
-        precacheImage(AssetImage(path), context);
-      }
-      for (final path in ddayImages) {
-        precacheImage(AssetImage(path), context);
-      }
+  void stopPlayback() {
+    playbackTimer?.cancel();
+    setState(() {
+      currentIndex = -1;
+      playerState = PlayerState.idle;
     });
   }
 
+  void restartPlayback() {
+    setState(() {
+      playerState = PlayerState.playing;
+      currentIndex = 0;
+    });
+    startTimer();
+  }
+
   void startTimer() {
-    timer?.cancel();
-    timer = Timer.periodic(Duration(milliseconds: interval.toInt()), (_) {
+    playbackTimer?.cancel();
+
+    playbackTimer = Timer.periodic(Duration(milliseconds: delayMs), (timer) {
+      if (currentIndex >= currentImageList.length - 1) {
+        timer.cancel();
+        setState(() {
+          playerState = PlayerState.finished;
+          currentIndex = -1;
+        });
+        return;
+      }
+
       setState(() {
-        if (index < maxIndex) {
-          index++;
-        } else {
-          timer?.cancel();
-        }
+        currentIndex++;
       });
     });
   }
 
-  void restart() {
-    setState(() {
-      index = 1;
-      startTimer();
-    });
-  }
-
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isFinished = index == maxIndex;
+    Widget centerContent;
+
+    if (playerState == PlayerState.idle) {
+      centerContent = const Text(
+        "Ready",
+        style: TextStyle(color: Colors.white, fontSize: 20),
+      );
+    } else if (playerState == PlayerState.finished) {
+      centerContent = const Text(
+        "End of Webtoon",
+        style: TextStyle(color: Colors.white, fontSize: 20),
+      );
+    } else {
+      centerContent = const SizedBox.shrink();
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -105,105 +118,142 @@ class _WebtoonViewerState extends State<WebtoonViewer>
         child: Column(
           children: [
             Expanded(
+              flex: 8,
               child: Center(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  switchInCurve: Curves.easeIn,
-                  switchOutCurve: Curves.easeOut,
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
-                  child: Image.asset(
-                    currentImagePath,
-                    key: ValueKey(currentImagePath),
+                  duration: Duration(milliseconds: 300),
+                  child: currentIndex == -1
+                      ? centerContent
+                      : Image.asset(
+                    currentImageList[currentIndex],
+                    key: ValueKey(currentImageList[currentIndex]),
                     fit: BoxFit.contain,
                   ),
                 ),
               ),
             ),
 
-            const SizedBox(height: 10),
-
-            // 현재 속도
-            Text(
-              "${interval.toInt()} ms",
-              style: const TextStyle(color: Colors.white, fontSize: 18),
-            ),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: interval,
-                    min: 500,
-                    max: 3000,
-                    divisions: 25,
-                    activeColor: Colors.blueAccent,
-                    inactiveColor: Colors.white30,
-                    onChanged: (v) {
-                      setState(() {
-                        interval = v;
-                        if (!isFinished) startTimer();
-                      });
-                    },
-                  ),
-                ),
-
-                // 다시하기 버튼
-                if (isFinished)
-                  IconButton(
-                    onPressed: restart,
-                    icon: const Icon(Icons.refresh, color: Colors.white),
-                  ),
-
-                const SizedBox(width: 8),
-
-                // 라디오 버튼
-                Column(
-                  children: [
-                    Row(
+            Container(
+              color: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              child: Row(
+                children: [
+                  // slow
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Radio<WebtoonType>(
-                          value: WebtoonType.barbarian,
-                          groupValue: currentType,
-                          fillColor: const WidgetStatePropertyAll(Colors.white),
+                        Radio(
+                          value: SpeedMode.slow,
+                          groupValue: speed,
                           onChanged: (v) {
-                            setState(() {
-                              currentType = v!;
-                              index = 1;
-                              startTimer();
-                            });
+                            if (playerState == PlayerState.playing) return;
+                            setState(() => speed = v!);
                           },
+                          fillColor:
+                          MaterialStateProperty.all<Color>(Colors.white),
+                        ),
+                        const Text("slow", style: TextStyle(color: Colors.white)),
+                      ],
+                    ),
+                  ),
+
+                  // fast
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Radio(
+                          value: SpeedMode.fast,
+                          groupValue: speed,
+                          onChanged: (v) {
+                            if (playerState == PlayerState.playing) return;
+                            setState(() => speed = v!);
+                          },
+                          fillColor:
+                          MaterialStateProperty.all<Color>(Colors.white),
+                        ),
+                        const Text("fast", style: TextStyle(color: Colors.white)),
+                      ],
+                    ),
+                  ),
+
+                  // main button
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (playerState == PlayerState.idle) {
+                          startPlayback();
+                        } else if (playerState == PlayerState.playing) {
+                          stopPlayback();
+                        } else if (playerState == PlayerState.finished) {
+                          restartPlayback();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: playerState == PlayerState.playing
+                            ? Colors.grey
+                            : Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        playerState == PlayerState.finished
+                            ? "Replay"
+                            : playerState == PlayerState.playing
+                            ? "Stop"
+                            : "Start",
+                        style: TextStyle(
+                          fontSize: 16
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // 웹툰1
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Radio(
+                          value: WebtoonType.barbarian,
+                          groupValue: webtoon,
+                          onChanged: (v) {
+                            if (playerState == PlayerState.playing) return;
+                            setState(() => webtoon = v!);
+                          },
+                          fillColor:
+                          MaterialStateProperty.all<Color>(Colors.white),
                         ),
                         const Text("바바리안", style: TextStyle(color: Colors.white)),
                       ],
                     ),
+                  ),
 
-                    Row(
+                  // 웹툰2
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Radio<WebtoonType>(
+                        Radio(
                           value: WebtoonType.dday,
-                          groupValue: currentType,
-                          fillColor: const WidgetStatePropertyAll(Colors.white),
+                          groupValue: webtoon,
                           onChanged: (v) {
-                            setState(() {
-                              currentType = v!;
-                              index = 1;
-                              startTimer();
-                            });
+                            if (playerState == PlayerState.playing) return;
+                            setState(() => webtoon = v!);
                           },
+                          fillColor:
+                          MaterialStateProperty.all<Color>(Colors.white),
                         ),
                         const Text("각자의디데이",
                             style: TextStyle(color: Colors.white)),
                       ],
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-
-            const SizedBox(height: 20),
           ],
         ),
       ),
