@@ -33,7 +33,7 @@ class _ViewerPageState extends State<ViewerPage> {
   WebtoonType webtoon = WebtoonType.letter;
 
   List<String> letterImages =
-  List.generate(15, (i) => "assets/images/a${i + 1}.png");
+  List.generate(14, (i) => "assets/images/a${i + 1}.png");
   List<String> ddayImages =
   List.generate(11, (i) => "assets/images/b${i + 1}.png");
 
@@ -140,43 +140,39 @@ class _ViewerPageState extends State<ViewerPage> {
               child: Row(
                 children: [
                   // slow
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Radio(
-                          value: SpeedMode.slow,
-                          groupValue: speed,
-                          onChanged: (v) {
-                            if (playerState == PlayerState.playing) return;
-                            setState(() => speed = v!);
-                          },
-                          fillColor:
-                          MaterialStateProperty.all<Color>(Colors.white),
-                        ),
-                        const Text("slow", style: TextStyle(color: Colors.white)),
-                      ],
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Radio(
+                        value: SpeedMode.slow,
+                        groupValue: speed,
+                        onChanged: (v) {
+                          if (playerState == PlayerState.playing) return;
+                          setState(() => speed = v!);
+                        },
+                        fillColor:
+                        MaterialStateProperty.all<Color>(Colors.white),
+                      ),
+                      const Text("slow", style: TextStyle(color: Colors.white)),
+                    ],
                   ),
 
                   // fast
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Radio(
-                          value: SpeedMode.fast,
-                          groupValue: speed,
-                          onChanged: (v) {
-                            if (playerState == PlayerState.playing) return;
-                            setState(() => speed = v!);
-                          },
-                          fillColor:
-                          MaterialStateProperty.all<Color>(Colors.white),
-                        ),
-                        const Text("fast", style: TextStyle(color: Colors.white)),
-                      ],
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Radio(
+                        value: SpeedMode.fast,
+                        groupValue: speed,
+                        onChanged: (v) {
+                          if (playerState == PlayerState.playing) return;
+                          setState(() => speed = v!);
+                        },
+                        fillColor:
+                        MaterialStateProperty.all<Color>(Colors.white),
+                      ),
+                      const Text("fast", style: TextStyle(color: Colors.white)),
+                    ],
                   ),
 
                   // main button
