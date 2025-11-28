@@ -23,7 +23,7 @@ enum PlayerState { idle, playing, finished }
 // 재생 속도 모드 (느림, 빠름)
 enum SpeedMode { slow, fast }
 // 웹툰 타입 (4개로 확장)
-enum WebtoonType { webtoon1, webtoon2, webtoon3, webtoon4 }
+enum WebtoonType { webtoon0, webtoon1, webtoon2, webtoon3, webtoon4 }
 
 class ViewerPage extends StatefulWidget {
   @override
@@ -38,6 +38,7 @@ class _ViewerPageState extends State<ViewerPage> {
   // 각 웹툰의 이미지 경로 설정 (assets/webtoon_kor/webtoonN/i.png)
   // 웹툰 1: 1.png ~ 6.png (6장)
   final Map<WebtoonType, List<String>> webtoonImages = {
+    WebtoonType.webtoon0: List.generate(3, (i) => "assets/webtoon_kor/webtoon0/${i + 1}.png"),
     WebtoonType.webtoon1: List.generate(6, (i) => "assets/webtoon_kor/webtoon1/${i + 1}.png"),
     // 웹툰 2: 1.png ~ 10.png (10장)
     WebtoonType.webtoon2: List.generate(10, (i) => "assets/webtoon_kor/webtoon2/${i + 1}.png"),
@@ -259,6 +260,7 @@ class _ViewerPageState extends State<ViewerPage> {
                   // 2. 웹툰 선택 라디오 버튼 Row (4개)
                   Row(
                     children: [
+                      _buildWebtoonRadio(WebtoonType.webtoon0, "튜토리얼"),
                       _buildWebtoonRadio(WebtoonType.webtoon1, "웹툰 1"),
                       _buildWebtoonRadio(WebtoonType.webtoon2, "웹툰 2"),
                       _buildWebtoonRadio(WebtoonType.webtoon3, "웹툰 3"),
