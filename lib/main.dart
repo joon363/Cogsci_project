@@ -18,9 +18,12 @@ class WebtoonViewer extends StatelessWidget {
   }
 }
 
+// 재생 상태 (대기, 재생 중, 종료)
 enum PlayerState { idle, playing, finished }
+// 재생 속도 모드 (느림, 빠름)
 enum SpeedMode { slow, fast }
-enum WebtoonType { letter, dday }
+// 웹툰 타입 (4개로 확장)
+enum WebtoonType { webtoon1, webtoon2, webtoon3, webtoon4 }
 
 class ViewerPage extends StatefulWidget {
   @override
@@ -30,20 +33,28 @@ class ViewerPage extends StatefulWidget {
 class _ViewerPageState extends State<ViewerPage> {
   PlayerState playerState = PlayerState.idle;
   SpeedMode speed = SpeedMode.slow;
-  WebtoonType webtoon = WebtoonType.letter;
+  WebtoonType webtoon = WebtoonType.webtoon1; // 기본값: 웹툰 1
 
-  List<String> letterImages =
-  List.generate(14, (i) => "assets/images/a${i + 1}.png");
-  List<String> ddayImages =
-  List.generate(11, (i) => "assets/images/b${i + 1}.png");
+  // 각 웹툰의 이미지 경로 설정 (assets/webtoon_kor/webtoonN/i.png)
+  // 웹툰 1: 1.png ~ 6.png (6장)
+  final Map<WebtoonType, List<String>> webtoonImages = {
+    WebtoonType.webtoon1: List.generate(6, (i) => "assets/webtoon_kor/webtoon1/${i + 1}.png"),
+    // 웹툰 2: 1.png ~ 10.png (10장)
+    WebtoonType.webtoon2: List.generate(10, (i) => "assets/webtoon_kor/webtoon2/${i + 1}.png"),
+    // 웹툰 3: 1.png ~ 10.png (10장)
+    WebtoonType.webtoon3: List.generate(10, (i) => "assets/webtoon_kor/webtoon3/${i + 1}.png"),
+    // 웹툰 4: 1.png ~ 15.png (15장)
+    WebtoonType.webtoon4: List.generate(15, (i) => "assets/webtoon_kor/webtoon4/${i + 1}.png"),
+  };
 
   int currentIndex = -1;
   Timer? playbackTimer;
 
+  // 속도에 따른 딜레이 설정 (느림: 3000ms, 빠름: 1500ms)
   int get delayMs => speed == SpeedMode.slow ? 3000 : 1500;
 
-  List<String> get currentImageList =>
-      webtoon == WebtoonType.letter ? letterImages : ddayImages;
+  // 현재 선택된 웹툰의 이미지 목록 반환
+  List<String> get currentImageList => webtoonImages[webtoon] ?? [];
 
   @override
   void dispose() {
@@ -51,7 +62,10 @@ class _ViewerPageState extends State<ViewerPage> {
     super.dispose();
   }
 
+  // 재생 시작
   void startPlayback() {
+    if (currentImageList.isEmpty) return; // 이미지가 없으면 재생하지 않음
+
     setState(() {
       playerState = PlayerState.playing;
       currentIndex = 0;
@@ -60,6 +74,7 @@ class _ViewerPageState extends State<ViewerPage> {
     startTimer();
   }
 
+  // 재생 중지 (초기 상태로 복귀)
   void stopPlayback() {
     playbackTimer?.cancel();
     setState(() {
@@ -68,7 +83,10 @@ class _ViewerPageState extends State<ViewerPage> {
     });
   }
 
+  // 재시작
   void restartPlayback() {
+    if (currentImageList.isEmpty) return; // 이미지가 없으면 재생하지 않음
+
     setState(() {
       playerState = PlayerState.playing;
       currentIndex = 0;
@@ -76,6 +94,7 @@ class _ViewerPageState extends State<ViewerPage> {
     startTimer();
   }
 
+  // 타이머 시작/재시작
   void startTimer() {
     playbackTimer?.cancel();
 
@@ -95,18 +114,40 @@ class _ViewerPageState extends State<ViewerPage> {
     });
   }
 
+  // 웹툰 선택 라디오 버튼 위젯을 생성하는 헬퍼 함수
+  Widget _buildWebtoonRadio(WebtoonType type, String label) {
+    return Expanded(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Radio<WebtoonType>(
+            value: type,
+            groupValue: webtoon,
+            onChanged: (v) {
+              if (playerState == PlayerState.playing) return;
+              setState(() => webtoon = v!);
+            },
+            fillColor: MaterialStateProperty.all<Color>(Colors.white),
+          ),
+          Text(label, style: const TextStyle(color: Colors.white)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget centerContent;
 
+    // 중앙에 표시될 텍스트
     if (playerState == PlayerState.idle) {
       centerContent = const Text(
-        "Ready",
+        "Ready", // 준비
         style: TextStyle(color: Colors.white, fontSize: 20),
       );
     } else if (playerState == PlayerState.finished) {
       centerContent = const Text(
-        "End of Webtoon",
+        "End of Webtoon", // 웹툰 종료
         style: TextStyle(color: Colors.white, fontSize: 20),
       );
     } else {
@@ -121,10 +162,11 @@ class _ViewerPageState extends State<ViewerPage> {
             Expanded(
               flex: 8,
               child: Center(
+                // 이미지 전환 애니메이션
                 child: AnimatedSwitcher(
-                  duration: Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 300),
                   child: currentIndex == -1
-                      ? centerContent
+                      ? centerContent // 준비 또는 종료 메시지
                       : Image.asset(
                     currentImageList[currentIndex],
                     key: ValueKey(currentImageList[currentIndex]),
@@ -134,114 +176,94 @@ class _ViewerPageState extends State<ViewerPage> {
               ),
             ),
 
+            // 컨트롤 패널 영역
             Container(
               color: Colors.black,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-              child: Row(
+              child: Column(
                 children: [
-                  // slow
+                  // 1. 속도 선택 및 메인 버튼 Row
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Radio(
-                        value: SpeedMode.slow,
-                        groupValue: speed,
-                        onChanged: (v) {
-                          if (playerState == PlayerState.playing) return;
-                          setState(() => speed = v!);
-                        },
-                        fillColor:
-                        MaterialStateProperty.all<Color>(Colors.white),
+                      // 느림
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Radio<SpeedMode>(
+                            value: SpeedMode.slow,
+                            groupValue: speed,
+                            onChanged: (v) {
+                              if (playerState == PlayerState.playing) return;
+                              setState(() => speed = v!);
+                            },
+                            fillColor:
+                            MaterialStateProperty.all<Color>(Colors.white),
+                          ),
+                          const Text("느림", style: TextStyle(color: Colors.white)),
+                        ],
                       ),
-                      const Text("slow", style: TextStyle(color: Colors.white)),
+
+                      // 빠름
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Radio<SpeedMode>(
+                            value: SpeedMode.fast,
+                            groupValue: speed,
+                            onChanged: (v) {
+                              if (playerState == PlayerState.playing) return;
+                              setState(() => speed = v!);
+                            },
+                            fillColor:
+                            MaterialStateProperty.all<Color>(Colors.white),
+                          ),
+                          const Text("빠름", style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+
+                      // 메인 버튼 (재생/중지/재시작)
+                      Expanded(
+                        child: Center(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (playerState == PlayerState.idle) {
+                                startPlayback();
+                              } else if (playerState == PlayerState.playing) {
+                                stopPlayback();
+                              } else if (playerState == PlayerState.finished) {
+                                restartPlayback();
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: playerState == PlayerState.playing
+                                  ? Colors.grey
+                                  : Colors.blueAccent,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            ),
+                            child: Icon(
+                              playerState == PlayerState.finished
+                                  ? Icons.replay // 재시작 아이콘
+                                  : playerState == PlayerState.playing
+                                  ? Icons.stop_circle_outlined // 중지 아이콘
+                                  : CupertinoIcons.arrowtriangle_right_fill, // 재생 아이콘
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
 
-                  // fast
+                  const SizedBox(height: 16),
+
+                  // 2. 웹툰 선택 라디오 버튼 Row (4개)
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Radio(
-                        value: SpeedMode.fast,
-                        groupValue: speed,
-                        onChanged: (v) {
-                          if (playerState == PlayerState.playing) return;
-                          setState(() => speed = v!);
-                        },
-                        fillColor:
-                        MaterialStateProperty.all<Color>(Colors.white),
-                      ),
-                      const Text("fast", style: TextStyle(color: Colors.white)),
+                      _buildWebtoonRadio(WebtoonType.webtoon1, "웹툰 1"),
+                      _buildWebtoonRadio(WebtoonType.webtoon2, "웹툰 2"),
+                      _buildWebtoonRadio(WebtoonType.webtoon3, "웹툰 3"),
+                      _buildWebtoonRadio(WebtoonType.webtoon4, "웹툰 4"),
                     ],
-                  ),
-
-                  // main button
-                  ElevatedButton(
-                    onPressed: () {
-                      if (playerState == PlayerState.idle) {
-                        startPlayback();
-                      } else if (playerState == PlayerState.playing) {
-                        stopPlayback();
-                      } else if (playerState == PlayerState.finished) {
-                        restartPlayback();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: playerState == PlayerState.playing
-                          ? Colors.grey
-                          : Colors.blueAccent,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Icon(
-                      playerState == PlayerState.finished
-                          ? Icons.replay
-                          : playerState == PlayerState.playing
-                          ? Icons.stop_circle_outlined
-                          : CupertinoIcons.arrowtriangle_right_fill,
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // 웹툰1
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Radio(
-                          value: WebtoonType.letter,
-                          groupValue: webtoon,
-                          onChanged: (v) {
-                            if (playerState == PlayerState.playing) return;
-                            setState(() => webtoon = v!);
-                          },
-                          fillColor:
-                          MaterialStateProperty.all<Color>(Colors.white),
-                        ),
-                        const Text("웹툰1", style: TextStyle(color: Colors.white)),
-                      ],
-                    ),
-                  ),
-
-                  // 웹툰2
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Radio(
-                          value: WebtoonType.dday,
-                          groupValue: webtoon,
-                          onChanged: (v) {
-                            if (playerState == PlayerState.playing) return;
-                            setState(() => webtoon = v!);
-                          },
-                          fillColor:
-                          MaterialStateProperty.all<Color>(Colors.white),
-                        ),
-                        const Text("웹툰2",
-                            style: TextStyle(color: Colors.white)),
-                      ],
-                    ),
                   ),
                 ],
               ),
