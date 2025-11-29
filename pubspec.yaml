@@ -64,10 +64,6 @@ flutter:
     - assets/webtoon_kor/webtoon2/
     - assets/webtoon_kor/webtoon3/
     - assets/webtoon_kor/webtoon4/
-    - assets/webtoon_eng/webtoon1/
-    - assets/webtoon_eng/webtoon2/
-    - assets/webtoon_eng/webtoon3/
-    - assets/webtoon_eng/webtoon4/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -22,10 +22,8 @@ class WebtoonViewer extends StatelessWidget {
 enum PlayerState { idle, playing, finished }
 // 재생 속도 모드 (느림, 빠름)
 enum SpeedMode { slow, fast }
-// 웹툰 타입 (4개)
+// 웹툰 타입 (4개로 확장)
 enum WebtoonType { webtoon0, webtoon1, webtoon2, webtoon3, webtoon4 }
-// 웹툰 언어 타입 (kor, eng)
-enum WebtoonLanguage { kor, eng }
 
 class ViewerPage extends StatefulWidget {
   @override
@@ -36,15 +34,18 @@ class _ViewerPageState extends State<ViewerPage> {
   PlayerState playerState = PlayerState.idle;
   SpeedMode speed = SpeedMode.slow;
   WebtoonType webtoon = WebtoonType.webtoon1; // 기본값: 웹툰 1
-  WebtoonLanguage language = WebtoonLanguage.kor; // 기본값: 한국어
 
-  // 각 웹툰의 이미지 개수 정보
-  final Map<WebtoonType, int> webtoonCounts = {
-    WebtoonType.webtoon0: 3,
-    WebtoonType.webtoon1: 6,
-    WebtoonType.webtoon2: 10,
-    WebtoonType.webtoon3: 10,
-    WebtoonType.webtoon4: 15,
+  // 각 웹툰의 이미지 경로 설정 (assets/webtoon_kor/webtoonN/i.png)
+  // 웹툰 1: 1.png ~ 6.png (6장)
+  final Map<WebtoonType, List<String>> webtoonImages = {
+    WebtoonType.webtoon0: List.generate(3, (i) => "assets/webtoon_kor/webtoon0/${i + 1}.png"),
+    WebtoonType.webtoon1: List.generate(6, (i) => "assets/webtoon_kor/webtoon1/${i + 1}.png"),
+    // 웹툰 2: 1.png ~ 10.png (10장)
+    WebtoonType.webtoon2: List.generate(10, (i) => "assets/webtoon_kor/webtoon2/${i + 1}.png"),
+    // 웹툰 3: 1.png ~ 10.png (10장)
+    WebtoonType.webtoon3: List.generate(10, (i) => "assets/webtoon_kor/webtoon3/${i + 1}.png"),
+    // 웹툰 4: 1.png ~ 15.png (15장)
+    WebtoonType.webtoon4: List.generate(15, (i) => "assets/webtoon_kor/webtoon4/${i + 1}.png"),
   };
 
   int currentIndex = -1;
@@ -54,13 +55,7 @@ class _ViewerPageState extends State<ViewerPage> {
   int get delayMs => speed == SpeedMode.slow ? 3000 : 1500;
 
   // 현재 선택된 웹툰의 이미지 목록 반환
-  List<String> get currentImageList {
-    final langDir = language == WebtoonLanguage.kor ? "webtoon_kor" : "webtoon_eng";
-    final webtoonName = webtoon.toString().split('.').last;
-    final count = webtoonCounts[webtoon] ?? 0;
-
-    return List.generate(count, (i) => "assets/$langDir/$webtoonName/${i + 1}.png");
-  }
+  List<String> get currentImageList => webtoonImages[webtoon] ?? [];
 
   @override
   void dispose() {
@@ -141,27 +136,6 @@ class _ViewerPageState extends State<ViewerPage> {
     );
   }
 
-  // 언어 선택 라디오 버튼 위젯을 생성하는 헬퍼 함수
-  Widget _buildLanguageRadio(WebtoonLanguage type, String label) {
-    return Expanded(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Radio<WebtoonLanguage>(
-            value: type,
-            groupValue: language,
-            onChanged: (v) {
-              if (playerState == PlayerState.playing) return;
-              setState(() => language = v!);
-            },
-            fillColor: MaterialStateProperty.all<Color>(Colors.white),
-          ),
-          Text(label, style: const TextStyle(color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     Widget centerContent;
@@ -209,7 +183,7 @@ class _ViewerPageState extends State<ViewerPage> {
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               child: Column(
                 children: [
-                  // 1. 속도 선택, 언어 선택, 메인 버튼 Row
+                  // 1. 속도 선택 및 메인 버튼 Row
                   Row(
                     children: [
                       // 느림
@@ -247,12 +221,6 @@ class _ViewerPageState extends State<ViewerPage> {
                           const Text("빠름", style: TextStyle(color: Colors.white)),
                         ],
                       ),
-
-                      // 언어 선택 (kor)
-                      _buildLanguageRadio(WebtoonLanguage.kor, "kor"),
-                      // 언어 선택 (eng)
-                      _buildLanguageRadio(WebtoonLanguage.eng, "eng"),
-
 
                       // 메인 버튼 (재생/중지/재시작)
                       Expanded(
@@ -293,10 +261,10 @@ class _ViewerPageState extends State<ViewerPage> {
                   Row(
                     children: [
                       _buildWebtoonRadio(WebtoonType.webtoon0, "튜토리얼"),
-                      _buildWebtoonRadio(WebtoonType.webtoon1, "웹툰 1"),
-                      _buildWebtoonRadio(WebtoonType.webtoon2, "웹툰 2"),
-                      _buildWebtoonRadio(WebtoonType.webtoon3, "웹툰 3"),
-                      _buildWebtoonRadio(WebtoonType.webtoon4, "웹툰 4"),
+                      _buildWebtoonRadio(WebtoonType.webtoon1, "각자의 디데이"),
+                      _buildWebtoonRadio(WebtoonType.webtoon2, "수학 잘 하는 법"),
+                      _buildWebtoonRadio(WebtoonType.webtoon3, "유일무이 로맨스"),
+                      _buildWebtoonRadio(WebtoonType.webtoon4, "봄의 편지"),
                     ],
                   ),
                 ],
